@@ -340,6 +340,22 @@ export default function GardenPlanner() {
     if(step===2)return!!form.size&&!!form.style; if(step===3)return form.colors.length>0; return true;
   };
 
+  const fetchPhotos = async (plants) => {
+    const results = await Promise.allSettled(
+      plants.map(p =>
+        fetch(`${API_BASE}/api/photo?name=${encodeURIComponent(p.name)}&scientificName=${encodeURIComponent(p.scientificName||'')}`)
+          .then(r => r.ok ? r.json() : null)
+          .then(data => ({ name: p.name, data }))
+          .catch(() => ({ name: p.name, data: null }))
+      )
+    );
+    const map = {};
+    results.forEach(r => {
+      if (r.status === 'fulfilled' && r.value?.data) map[r.value.name] = r.value.data;
+    });
+    setPhotos(map);
+  };
+
   const generate=async()=>{
     setScreen('loading');
     const prompt=`Create a year-round bloom garden plan for Zone ${form.zone}, ${form.sun}, ${form.size}, ${form.style}, colors: ${form.colors.join(', ')}.
@@ -347,7 +363,9 @@ Return ONLY raw JSON: {"gardenSummary":"2-3 sentence intro","continuityNote":"1 
 Exactly 18 plants. type: annual|perennial|bulb|shrub|tree. Ensure meaningful bloom coverage every month for Zone ${form.zone}.`;
     try {
       const raw=await callClaude('You are an expert horticulturist. Respond with valid JSON only.',prompt, 8000);
-      setPlan(JSON.parse(raw)); setScreen('results');
+      const parsed=JSON.parse(raw);
+      setPlan(parsed); setScreen('results');
+      fetchPhotos(parsed.plants);
     } catch(e){logError('Generate',e);setErrMsg(e.message||String(e));setScreen('error');}
   };
 
@@ -397,7 +415,7 @@ Exactly 18 plants. type: annual|perennial|bulb|shrub|tree. Ensure meaningful blo
       {screen==='onboarding'&&<Onboard step={step} form={form} setForm={setForm} onNext={next} onBack={back} canGo={canGo()}/>}
       {screen==='loading'&&<Loading msg={loadMsg}/>}
       {screen==='error'&&<ErrorScreen msg={errMsg} onRetry={()=>{setScreen('onboarding');setStep(3);}} />}
-      {screen==='results'&&plan&&<Results plan={plan} form={form} onRestart={restart} onSave={savePlan} onShare={sharePlan} onPrint={()=>openPrint(plan,form)} toast={toast} shareUrl={shareUrl} onDismissShare={()=>setShareUrl('')}/>}
+      {screen==='results'&&plan&&<Results plan={plan} form={form} photos={photos} onRestart={restart} onSave={savePlan} onShare={sharePlan} onPrint={()=>openPrint(plan,form)} toast={toast} shareUrl={shareUrl} onDismissShare={()=>setShareUrl('')}/>}
     </div>
   );
 }
@@ -522,7 +540,7 @@ function Loading({msg}){
 }
 
 /* ── RESULTS ──────────────────────────────────────────────────────────────── */
-function Results({plan,form,onRestart,onSave,onShare,onPrint,toast,shareUrl,onDismissShare}){
+function Results({plan,form,photos,onRestart,onSave,onShare,onPrint,toast,shareUrl,onDismissShare}){
   const [tab,setTab]=useState('calendar');
   return(
     <div className="res">
@@ -552,7 +570,7 @@ function Results({plan,form,onRestart,onSave,onShare,onPrint,toast,shareUrl,onDi
         ))}
       </div>
       {tab==='calendar'&&<BloomCalendar plants={plan.plants}/>}
-      {tab==='plants'&&<PlantList plants={plan.plants}/>}
+      {tab==='plants'&&<PlantList plants={plan.plants} photos={photos}/>}
       {tab==='tips'&&<SeasonalTips tips={plan.seasonalTips}/>}
       <div className="res-foot">
         <p style={{fontSize:'13px',color:'var(--muted)',textAlign:'center',marginBottom:'16px',lineHeight:'1.5',fontStyle:'italic'}}>{plan.continuityNote}</p>
@@ -583,7 +601,7 @@ function BloomCalendar({plants}){
 }
 
 /* ── PLANT LIST ───────────────────────────────────────────────────────────── */
-function PlantList({plants}){
+function PlantList({plants, photos={}}){
   const [open,setOpen]=useState(null);
   const toggle=i=>setOpen(open===i?null:i);
 
@@ -624,6 +642,17 @@ function PlantList({plants}){
             {/* EXPANDED DETAIL */}
             {exp&&(
               <div className="pc-detail">
+
+                {/* PHOTO */}
+                {photos[pl.name]&&(
+                  <div style={{marginBottom:'12px',borderRadius:'12px',overflow:'hidden',position:'relative'}}>
+                    <img src={photos[pl.name].thumb} alt={pl.name} style={{width:'100%',height:'160px',objectFit:'cover',display:'block'}}/>
+                    <a href={photos[pl.name].creditLink} target="_blank" rel="noopener noreferrer"
+                      style={{position:'absolute',bottom:'6px',right:'8px',fontSize:'10px',color:'rgba(255,255,255,.9)',background:'rgba(0,0,0,.45)',padding:'2px 8px',borderRadius:'100px',textDecoration:'none',fontFamily:'DM Sans,sans-serif'}}>
+                      📷 {photos[pl.name].credit} / Unsplash
+                    </a>
+                  </div>
+                )}
 
                 {/* BLOOM COLOR + SEASON BAR */}
                 <div style={{background:'#F8F5F0',borderRadius:'12px',padding:'14px',marginBottom:'12px'}}>
