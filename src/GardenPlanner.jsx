@@ -397,20 +397,6 @@ Exactly 18 plants. type: annual|perennial|bulb|shrub|tree. Ensure meaningful blo
   return (
     <div className="app">
       <style>{G}</style>
-      {/* ── ERROR LOG PANEL ── */}
-      <div style={{position:'fixed',bottom:'12px',right:'12px',zIndex:9999}}>
-        <button onClick={()=>setShowLog(v=>!v)} style={{background:'#1A3028',color:'#fff',border:'none',borderRadius:'100px',padding:'7px 14px',fontSize:'12px',cursor:'pointer',opacity:.7,fontFamily:'DM Sans,sans-serif'}}>
-          {showLog ? '✕ Close Log' : `🐛 Log${errorLog.length?` (${errorLog.length})`:''}` }
-        </button>
-        {showLog&&(
-          <div style={{position:'absolute',bottom:'36px',right:0,width:'320px',maxHeight:'260px',overflowY:'auto',background:'#1A3028',border:'1px solid rgba(255,255,255,.15)',borderRadius:'12px',padding:'12px',fontFamily:'monospace',fontSize:'11px',color:'rgba(245,240,232,.85)'}}>
-            {errorLog.length===0
-              ? <p style={{color:'rgba(245,240,232,.4)',textAlign:'center',margin:'8px 0'}}>No errors logged yet.</p>
-              : errorLog.map((e,i)=><div key={i} style={{marginBottom:'8px',borderBottom:'1px solid rgba(255,255,255,.08)',paddingBottom:'8px',lineHeight:'1.5',wordBreak:'break-word'}}>{e}</div>)
-            }
-          </div>
-        )}
-      </div>
       {screen==='welcome'&&<Welcome onStart={()=>setScreen('onboarding')} onSaved={loadSaved} showSaved={showSaved} saved={saved} onLoad={loadPlan} onDelete={deleteSaved} onClose={()=>setShowSaved(false)}/>}
       {screen==='onboarding'&&<Onboard step={step} form={form} setForm={setForm} onNext={next} onBack={back} canGo={canGo()}/>}
       {screen==='loading'&&<Loading msg={loadMsg}/>}
