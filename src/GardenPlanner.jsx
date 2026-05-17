@@ -66,10 +66,12 @@ const G = `
   .act-btn{display:flex;align-items:center;gap:5px;padding:8px 13px;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;border:1.5px solid rgba(255,255,255,.22);background:rgba(255,255,255,.1);color:var(--cream);white-space:nowrap}
   .act-btn:hover{background:rgba(255,255,255,.2)}
   .act-btn.ok{background:rgba(122,158,126,.45);border-color:var(--sage);color:#d4edd8}
-  .tab-bar{display:flex;border-bottom:2px solid var(--border);background:var(--white);position:sticky;top:0;z-index:10}
-  .tab-btn{flex:1;padding:14px 4px;border:none;background:none;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;transition:all .2s;border-bottom:2.5px solid transparent;margin-bottom:-2px}
-  .tab-btn.active{font-weight:600;color:var(--deep);border-bottom-color:var(--forest)}
-  .tab-btn:not(.active){font-weight:400;color:#999}
+  .tab-bar{display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--white);position:sticky;top:0;z-index:10}
+  .tab-btn{flex:1;padding:9px 4px;border-radius:8px;border:1.5px solid var(--border);background:var(--white);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:all .2s;font-weight:500;color:var(--deep)}
+  .tab-btn.active{background:var(--forest);color:#fff;border-color:var(--forest);font-weight:600}
+  .tab-btn:not(.active):hover{border-color:var(--sage);background:var(--lsage)}
+  .hint-banner{display:flex;align-items:center;gap:8px;background:var(--lsage);border-bottom:1px solid #c8dfc8;padding:9px 14px;animation:slideDown .35s ease}
+  @keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
   .sec{padding:28px;border-bottom:1px solid #EEE8DE}
   .sec-ttl{font-family:'Playfair Display',serif;font-size:20px;color:var(--deep);margin-bottom:20px}
   .sec-lbl{font-size:12px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
@@ -528,6 +530,8 @@ function Loading({msg}){
 /* ── RESULTS ──────────────────────────────────────────────────────────────── */
 function Results({plan,form,photos,onRestart,onSave,onShare,onPrint,toast,shareUrl,onDismissShare}){
   const [tab,setTab]=useState('calendar');
+  const [hint,setHint]=useState(true);
+  useEffect(()=>{if(hint){const t=setTimeout(()=>setHint(false),4000);return()=>clearTimeout(t);}},[hint]);
   return(
     <div className="res">
       {shareUrl&&(
@@ -550,6 +554,13 @@ function Results({plan,form,photos,onRestart,onSave,onShare,onPrint,toast,shareU
           <button className="act-btn" onClick={onPrint}>🖨️ Print / PDF</button>
         </div>
       </div>
+      {hint&&(
+        <div className="hint-banner">
+          <span style={{fontSize:'15px'}}>👇</span>
+          <span style={{fontSize:'12px',color:'var(--forest)',fontWeight:'500'}}>Explore all 3 sections of your plan</span>
+          <button onClick={()=>setHint(false)} style={{marginLeft:'auto',background:'none',border:'none',fontSize:'16px',color:'var(--sage)',cursor:'pointer',padding:'0',lineHeight:'1'}}>×</button>
+        </div>
+      )}
       <div className="tab-bar">
         {[{id:'calendar',lb:'📅 Calendar'},{id:'plants',lb:'🌿 Plants'},{id:'tips',lb:'💡 Seasonal'}].map(t=>(
           <button key={t.id} className={`tab-btn ${tab===t.id?'active':''}`} onClick={()=>setTab(t.id)}>{t.lb}</button>
