@@ -597,6 +597,24 @@ function BloomCalendar({plants}){
   );
 }
 
+/* ── SEEDLING ICON ────────────────────────────────────────────────────────── */
+function SeedlingIcon({open}){
+  const lf=(r)=>({transformOrigin:'12px 15px',transform:`rotate(${r}deg)`,transition:'transform 0.45s cubic-bezier(0.34,1.56,0.64,1)'});
+  return(
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <line x1="12" y1="23" x2="12" y2="15" stroke="#2D5016" strokeWidth="1.5" strokeLinecap="round"/>
+      <ellipse cx="12" cy="10" rx="3.5" ry="5" fill="#7A9E7E" style={lf(open?-58:-20)}/>
+      <ellipse cx="12" cy="10" rx="3.5" ry="5" fill="#7A9E7E" style={lf(open?58:20)}/>
+      <ellipse cx="12" cy="10" rx="2" ry="3.5" fill="#2D5016" style={{
+        transformOrigin:'12px 15px',
+        opacity:open?1:0,
+        transform:open?'scaleY(1)':'scaleY(0.1)',
+        transition:open?'opacity 0.25s ease 0.22s,transform 0.35s cubic-bezier(0.34,1.56,0.64,1) 0.18s':'opacity 0.1s ease,transform 0.1s ease',
+      }}/>
+    </svg>
+  );
+}
+
 /* ── PLANT LIST ───────────────────────────────────────────────────────────── */
 function PlantList({plants, photos={}}){
   const [open,setOpen]=useState(null);
@@ -623,7 +641,6 @@ function PlantList({plants, photos={}}){
               </div>
               <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'5px'}}>
                 <div className="pc-badge" style={{background:tc.bg,color:tc.tx}}>{pl.type}</div>
-                <span style={{fontSize:'11px',color:'#ccc'}}>{exp?'▲':'▼'}</span>
               </div>
             </div>
 
@@ -634,6 +651,12 @@ function PlantList({plants, photos={}}){
                 const bg=pl.bloomColor||tc.bar;
                 return <div key={mi} className={`mchip ${bl?'':'off'}`} style={bl?{background:bg,color:getContrastColor(bg)}:{}}>{m[0]}</div>;
               })}
+            </div>
+
+            {/* SEEDLING EXPAND BUTTON */}
+            <div onClick={()=>toggle(i)} style={{display:'flex',alignItems:'center',gap:'7px',marginTop:'10px',paddingTop:'10px',borderTop:'1px solid #F0EDE8',cursor:'pointer'}}>
+              <SeedlingIcon open={exp}/>
+              <span style={{fontSize:'12px',color:'var(--forest)',fontWeight:'500'}}>{exp?'Hide plant details':'View plant details'}</span>
             </div>
 
             {/* EXPANDED DETAIL */}
