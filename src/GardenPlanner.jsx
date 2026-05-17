@@ -589,7 +589,6 @@ function Loading({msg}){
 function Results({plan,form,photos,onRestart,onSave,onShare,onPrint,toast,shareUrl,onDismissShare}){
   const [tab,setTab]=useState('calendar');
   const [hint,setHint]=useState(true);
-  useEffect(()=>{if(hint){const t=setTimeout(()=>setHint(false),4000);return()=>clearTimeout(t);}},[hint]);
   return(
     <div className="res">
       {shareUrl&&(
