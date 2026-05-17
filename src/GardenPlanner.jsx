@@ -465,6 +465,44 @@ function Onboard({step,form,setForm,onNext,onBack,canGo}){
 }
 
 function ZoneStep({form,setForm}){
+  const [postal,setPostal]=useState('');
+  const [status,setStatus]=useState(''); // '' | 'loading' | 'found' | 'error'
+  const [msg,setMsg]=useState('');
+
+  const findZone=async()=>{
+    if(!postal.trim())return;
+    setStatus('loading'); setMsg('');
+    try{
+      // 1. Geocode postal code via Nominatim
+      const geoRes=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(postal)}&format=json&limit=1`);
+      const geo=await geoRes.json();
+      if(!geo||geo.length===0){setStatus('error');setMsg("Couldn't find that location. Try adding your country, e.g. \"SW1A, UK\".");return;}
+      const lat=parseFloat(geo[0].lat),lon=parseFloat(geo[0].lon);
+
+      // 2. Fetch 10 years of daily min temps from Open-Meteo
+      const tRes=await fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=2015-01-01&end_date=2024-12-31&daily=temperature_2m_min&timezone=auto`);
+      const tData=await tRes.json();
+      if(!tData.daily?.temperature_2m_min)throw new Error('No data');
+
+      // 3. Average annual minimums → USDA zone
+      const yearMins={};
+      tData.daily.time.forEach((d,i)=>{
+        const yr=d.slice(0,4), t=tData.daily.temperature_2m_min[i];
+        if(t!==null&&(yearMins[yr]===undefined||t<yearMins[yr]))yearMins[yr]=t;
+      });
+      const avgMin=Object.values(yearMins).reduce((a,b)=>a+b,0)/Object.values(yearMins).length;
+      const thresholds=[[-45.6,'1'],[-40,'2'],[-34.4,'3'],[-28.9,'4'],[-23.3,'5'],[-17.8,'6'],[-12.2,'7'],[-6.7,'8'],[-1.1,'9'],[4.4,'10'],[10,'11']];
+      const zone=(thresholds.find(([max])=>avgMin<=max)||[null,'12'])[1];
+
+      // 4. Apply and confirm
+      setForm(f=>({...f,zone}));
+      const place=geo[0].display_name.split(',').slice(0,2).join(',').trim();
+      setStatus('found'); setMsg(`Zone ${zone} detected for ${place}`);
+    }catch(e){
+      setStatus('error'); setMsg("Couldn't determine zone. Please select manually above.");
+    }
+  };
+
   return(
     <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
       <select className="zone-sel" value={form.zone} onChange={e=>setForm(f=>({...f,zone:e.target.value}))}>
@@ -472,7 +510,27 @@ function ZoneStep({form,setForm}){
         {Array.from({length:13},(_,i)=>i+1).map(z=><option key={z} value={String(z)}>Zone {z}</option>)}
       </select>
       {form.zone&&<div className="zone-hint"><strong>Zone {form.zone}:</strong> {ZONE_DESC[form.zone]}</div>}
-      <p style={{fontSize:'13px',color:'#aaa'}}>Not sure? Search "USDA hardiness zone" + your zip code.</p>
+
+      <div style={{borderTop:'1px solid var(--border)',paddingTop:'14px'}}>
+        <p style={{fontSize:'13px',color:'var(--muted)',marginBottom:'10px',fontWeight:'500'}}>🔍 Don't know your zone?</p>
+        <div style={{display:'flex',gap:'8px'}}>
+          <input
+            type="text" placeholder="Enter postal / zip code"
+            value={postal} onChange={e=>setPostal(e.target.value)}
+            onKeyDown={e=>e.key==='Enter'&&findZone()}
+            style={{flex:1,padding:'12px 14px',border:'2px solid var(--border)',borderRadius:'12px',fontFamily:'DM Sans,sans-serif',fontSize:'14px',color:'var(--deep)',background:'var(--white)',outline:'none'}}
+          />
+          <button onClick={findZone} disabled={status==='loading'||!postal.trim()}
+            style={{padding:'12px 16px',background:'var(--forest)',color:'#fff',border:'none',borderRadius:'12px',fontFamily:'DM Sans,sans-serif',fontSize:'14px',fontWeight:'500',cursor:'pointer',whiteSpace:'nowrap',opacity:(status==='loading'||!postal.trim())?0.5:1}}>
+            {status==='loading'?'…':'Find Zone'}
+          </button>
+        </div>
+        {msg&&(
+          <div style={{marginTop:'10px',padding:'10px 13px',borderRadius:'10px',fontSize:'13px',background:status==='found'?'var(--lsage)':'#FFF0ED',color:status==='found'?'var(--forest)':'var(--terra)'}}>
+            {status==='found'?'✓ ':'⚠ '}{msg}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
