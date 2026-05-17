@@ -362,9 +362,9 @@ export default function GardenPlanner() {
     setScreen('loading');
     const prompt=`Create a year-round bloom garden plan for Zone ${form.zone}, ${form.sun}, ${form.size}, ${form.style}, colors: ${form.colors.join(', ')}.
 Return ONLY raw JSON: {"gardenSummary":"2-3 sentence intro","continuityNote":"1 sentence","plants":[{"name":"","scientificName":"","type":"perennial","bloomMonths":[5,6,7],"bloomColor":"#hex","height":"","sunNeeds":"","plantingTip":"","whyItWorks":""}],"seasonalTips":{"spring":"","summer":"","fall":"","winter":""}}
-Exactly 18 plants. type: annual|perennial|bulb|shrub|tree. Ensure meaningful bloom coverage every month for Zone ${form.zone}.`;
+Exactly 10 plants. type: annual|perennial|bulb|shrub|tree. Ensure meaningful bloom coverage every month for Zone ${form.zone}.`;
     try {
-      const raw=await callClaude('You are an expert horticulturist. Respond with valid JSON only.',prompt, 8000);
+      const raw=await callClaude('You are an expert horticulturist. Respond with valid JSON only.',prompt, 4000);
       const parsed=JSON.parse(raw);
       setPlan(parsed); setScreen('results');
       fetchPhotos(parsed.plants);
