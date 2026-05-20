@@ -203,22 +203,31 @@ const STEPS = [
 //   Claude.ai artifact testing: leave as '' (direct Anthropic call, auth is automatic)
 const API_BASE = 'https://bloom-planner-backend-production.up.railway.app';
 
-async function callClaude(system, msg, max_tokens = 4000) {
+// Warm up the Railway backend on app load to avoid cold-start timeouts
+if (API_BASE) fetch(`${API_BASE}/health`).catch(()=>{});
+
+async function callClaude(system, msg, max_tokens = 4000, attempt = 1) {
   let r;
-  if (API_BASE) {
-    // ── Production / local dev: route through backend proxy ──
-    r = await fetch(`${API_BASE}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ system, messages: [{ role: 'user', content: msg }], max_tokens }),
-    });
-  } else {
-    // ── Claude.ai artifact sandbox: call Anthropic directly (auth injected automatically) ──
-    r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens, system, messages: [{ role: 'user', content: msg }] }),
-    });
+  try {
+    if (API_BASE) {
+      // ── Production / local dev: route through backend proxy ──
+      r = await fetch(`${API_BASE}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ system, messages: [{ role: 'user', content: msg }], max_tokens }),
+      });
+    } else {
+      // ── Claude.ai artifact sandbox: call Anthropic directly (auth injected automatically) ──
+      r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens, system, messages: [{ role: 'user', content: msg }] }),
+      });
+    }
+  } catch(e) {
+    // Network error — retry once after a short delay (handles cold-start timeouts)
+    if (attempt < 2) { await new Promise(res=>setTimeout(res,3000)); return callClaude(system,msg,max_tokens,2); }
+    throw e;
   }
   const d = await r.json();
   console.log('API response:', JSON.stringify(d).slice(0,300));
